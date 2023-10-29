@@ -30,7 +30,12 @@ describe('OrderService', () => {
     const timestamp = '45931350';
     const price = 102;
     const quantity = 10;
-    const order = await service.setBidOrder(userId, timestamp, price, quantity);
+    const order = await service.setBidOrder({
+      userId,
+      timestamp,
+      price,
+      quantity,
+    });
 
     console.log(order);
   });
