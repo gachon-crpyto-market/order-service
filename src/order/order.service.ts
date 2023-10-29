@@ -1,18 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { RedisClientType } from 'redis';
 import { ORDER_TYPE } from '../../types';
+import { OrderDto } from './dto/order.dto';
 
 @Injectable()
 export class OrderService {
   @Inject('BID_REDIS_CLIENT') private readonly bidRedis: RedisClientType;
   @Inject('ASK_REDIS_CLIENT') private readonly askRedis: RedisClientType;
 
-  async setBidOrder(
-    userId: string,
-    timestamp: string,
-    price: number,
-    quantity: number,
-  ): Promise<any> {
+  async setBidOrder(orderDto: OrderDto): Promise<number | number[]> {
+    const { userId, timestamp, price, quantity } = orderDto;
+
     const bidInfo = {
       userId,
       timestamp,
@@ -26,12 +24,9 @@ export class OrderService {
     return await this.bidRedis.json.ARRAPPEND(price.toString(), '$', bidInfo);
   }
 
-  async setAskOrder(
-    userId: string,
-    timestamp: string,
-    price: number,
-    quantity: number,
-  ): Promise<any> {
+  async setAskOrder(orderDto: OrderDto): Promise<number | number[]> {
+    const { userId, timestamp, price, quantity } = orderDto;
+
     const askInfo = {
       userId,
       timestamp,
@@ -42,7 +37,7 @@ export class OrderService {
       await this.askRedis.json.SET(price.toString(), '$', []);
     }
 
-    await this.askRedis.json.ARRAPPEND(price.toString(), '$', askInfo);
+    return await this.askRedis.json.ARRAPPEND(price.toString(), '$', askInfo);
   }
 
   async getBidList(): Promise<any> {
