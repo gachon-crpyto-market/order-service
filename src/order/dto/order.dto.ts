@@ -5,8 +5,6 @@ export class OrderDto {
   @IsString()
   userId: string;
 
-  @IsNotEmpty()
-  @IsString()
   timestamp: string;
 
   @IsNotEmpty()
