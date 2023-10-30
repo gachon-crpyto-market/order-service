@@ -6,13 +6,20 @@ import { OrderDto } from './dto/order.dto';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  // @Post('bid')
+  // async bid(@Body() orderDto: OrderDto): Promise<number | number[]> {
+  //   return await this.orderService.setBidOrder(orderDto);
+  // }
+
   @Post('bid')
   async bid(@Body() orderDto: OrderDto): Promise<number | number[]> {
-    return await this.orderService.setBidOrder(orderDto);
+    orderDto.timestamp = new Date().toISOString();
+    return await this.orderService.newSetBidOrder(orderDto);
   }
 
   @Post('ask')
   async ask(@Body() orderDto: OrderDto): Promise<number | number[]> {
+    orderDto.timestamp = new Date().toISOString();
     return await this.orderService.setAskOrder(orderDto);
   }
 
