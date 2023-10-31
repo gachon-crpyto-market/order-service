@@ -190,14 +190,20 @@ export class OrderService {
   async getBidList(): Promise<any> {
     const keys = await this.getAllKeys(ORDER_TYPE.BID);
     return await Promise.all(
-      keys.map(async (key) => await this.bidRedis.json.get(key)),
+      keys.map(async (price) => {
+        const order = await this.bidRedis.json.get(price);
+        return { price, order };
+      }),
     );
   }
 
   async getAskList(): Promise<any> {
     const keys = await this.getAllKeys(ORDER_TYPE.ASK);
     return await Promise.all(
-      keys.map(async (key) => await this.askRedis.json.get(key)),
+      keys.map(async (price) => {
+        const order = await this.askRedis.json.get(price);
+        return { price, order };
+      }),
     );
   }
 
