@@ -8,11 +8,13 @@ export class OrderController {
 
   @Post('bid')
   async bid(@Body() orderDto: OrderDto): Promise<number | number[]> {
+    orderDto.timestamp = new Date().toISOString();
     return await this.orderService.setBidOrder(orderDto);
   }
 
   @Post('ask')
   async ask(@Body() orderDto: OrderDto): Promise<number | number[]> {
+    orderDto.timestamp = new Date().toISOString();
     return await this.orderService.setAskOrder(orderDto);
   }
 
