@@ -29,7 +29,7 @@ jobs:
       - name: 🍃 docker hub에서 pull 후 deploy합니다.
         uses: appleboy/ssh-action@master
         with:
-          username: ubuntu
+          username: portal
           host: ${{ secrets.HOST }}
           key: ${{ secrets.KEY }}
           script: |
