@@ -167,7 +167,7 @@ export class OrderService {
       }
     }
     // 체결 과정 이후의 매도 주문 리스트
-    this.logger.debug('체결 과정 이후 매도 주문 리스트');
+    this.logger.debug('체결 과정 이후 매수 주문 리스트');
     this.logger.debug(await this.getBidList());
 
     if (remainQuantity === 0) {

@@ -7,5 +7,6 @@ import { RedisModule } from '../redis/redis.module';
   imports: [RedisModule],
   providers: [OrderService],
   controllers: [OrderController],
+  exports: [OrderService],
 })
 export class OrderModule {}

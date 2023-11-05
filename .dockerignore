@@ -1,0 +1,13 @@
+.idea
+.git
+node_modules
+dist
+.eslintrc.js
+.prettierrc
+.gitignore
+.gitattributes
+.husky
+Dockerfile*
+.dockerignore
+*.yml
+*.md
