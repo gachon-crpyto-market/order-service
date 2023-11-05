@@ -1,0 +1,39 @@
+name: Deployment
+
+on: [push]
+
+jobs:
+  deployment:
+  
+    runs-on: ubuntu-latest
+    
+    steps:
+      
+      - name: checkout Github Action
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20.5.1
+        
+      - run: npm install
+      - run: npm run build
+
+      - name: 🍃 docker image build 후 docker hub에 push합니다.
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker build -t ${{ secrets.DOCKER_REPOSITORY }}/${{ secrets.DOCKER_IMAGE }} -f ./Dockerfile .
+          docker push ${{ secrets.DOCKER_REPOSITORY }}/${{ secrets.DOCKER_IMAGE }}
+          
+      - name: 🍃 docker hub에서 pull 후 deploy합니다.
+        uses: appleboy/ssh-action@master
+        with:
+          username: ubuntu
+          host: ${{ secrets.HOST }}
+          key: ${{ secrets.KEY }}
+          script: |
+            if [ -n "$(docker ps -a | grep ${{ secrets.DOCKER_IMAGE }})" ]; then docker rm -f ${{ secrets.DOCKER_IMAGE }}; fi
+            docker pull ${{ secrets.DOCKER_REPOSITORY }}/${{ secrets.DOCKER_IMAGE }}
+            docker run -d -it --name ${{ secrets.DOCKER_IMAGE }} -p 3000:3000 -p 80:80 ${{ secrets.DOCKER_REPOSITORY }}/${{ secrets.DOCKER_IMAGE }}
+            
