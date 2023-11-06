@@ -26,4 +26,6 @@ WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/node_modules ./node_modules
 COPY --from=build /usr/src/app/dist ./dist
 
+ENV NODE_ENV=production
+
 CMD [ "node", "dist/src/main" ]
