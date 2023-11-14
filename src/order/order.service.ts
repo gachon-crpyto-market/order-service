@@ -2,12 +2,17 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { RedisClientType } from 'redis';
 import { ORDER_TYPE } from '../../types';
 import { OrderDto } from './dto/order.dto';
+import { TransactionDto } from './dto/transaction.dto';
+import { HttpService } from '@nestjs/axios';
+import { Observable } from 'rxjs';
+import { AxiosResponse } from 'axios';
 
 @Injectable()
 export class OrderService {
   @Inject('BID_REDIS_CLIENT') private readonly bidRedis: RedisClientType;
   @Inject('ASK_REDIS_CLIENT') private readonly askRedis: RedisClientType;
   private readonly logger: Logger = new Logger(OrderService.name);
+  constructor(private readonly httpService: HttpService) {}
 
   async setBidOrder(orderDto: OrderDto): Promise<any> {
     const { userId, timestamp, price, quantity } = orderDto;
@@ -51,6 +56,18 @@ export class OrderService {
           const concludedOrder: any = await this.askRedis.json.GET(priceKey);
           this.logger.debug('전부 체결된 주문: ', concludedOrder[0]);
 
+          const transactionDto: TransactionDto = {
+            buyerId: userId,
+            sellerId: concludedOrder[0].userId,
+            price: Number(priceKey),
+            quantity: concludedOrder[0].quantity,
+            timestamp: concludedOrder[0].timestamp,
+          };
+
+          this.postTransaction(transactionDto).subscribe((res) => {
+            this.logger.debug('체결 결과: ', res.data);
+          });
+
           // 체결된 주문 매도 redis에서 제거
           //forget 사용 고려
           await this.askRedis.json.ARRTRIM(priceKey, '$', 1, -1);
@@ -72,6 +89,18 @@ export class OrderService {
           // 실제 체결된 결과를 보내주기 위해 quantity값 갱신
           concludedOrder[0].quantity = remainQuantity;
           this.logger.debug('일부 체결된 주문', concludedOrder[0]);
+
+          const transactionDto: TransactionDto = {
+            buyerId: userId,
+            sellerId: concludedOrder[0].userId,
+            price: Number(priceKey),
+            quantity: concludedOrder[0].quantity,
+            timestamp: concludedOrder[0].timestamp,
+          };
+
+          this.postTransaction(transactionDto).subscribe((res) => {
+            this.logger.debug('체결 결과: ', res.data);
+          });
 
           remainQuantity = 0;
           break;
@@ -139,6 +168,18 @@ export class OrderService {
           const concludedOrder: any = await this.bidRedis.json.GET(priceKey);
           this.logger.debug('전부 체결된 주문: ', concludedOrder[0]);
 
+          const transactionDto: TransactionDto = {
+            buyerId: concludedOrder[0].userId,
+            sellerId: userId,
+            price: Number(priceKey),
+            quantity: concludedOrder[0].quantity,
+            timestamp: concludedOrder[0].timestamp,
+          };
+
+          this.postTransaction(transactionDto).subscribe((res) => {
+            this.logger.debug('체결 결과: ', res.data);
+          });
+
           // 체결된 주문 매수 redis에서 제거
           //forget 사용 고려
           await this.bidRedis.json.ARRTRIM(priceKey, '$', 1, -1);
@@ -160,6 +201,18 @@ export class OrderService {
           // 실제 체결된 결과를 보내주기 위해 quantity값 갱신
           concludedOrder[0].quantity = remainQuantity;
           this.logger.debug('일부 체결된 주문: ', concludedOrder[0]);
+
+          const transactionDto: TransactionDto = {
+            buyerId: concludedOrder[0].userId,
+            sellerId: userId,
+            price: Number(priceKey),
+            quantity: concludedOrder[0].quantity,
+            timestamp: concludedOrder[0].timestamp,
+          };
+
+          this.postTransaction(transactionDto).subscribe((res) => {
+            this.logger.debug('체결 결과: ', res.data);
+          });
 
           remainQuantity = 0;
           break;
@@ -221,5 +274,15 @@ export class OrderService {
     } else if (orderType === ORDER_TYPE.ASK) {
       return this.askRedis.keys('*');
     }
+  }
+
+  postTransaction(
+    transactionDto: TransactionDto,
+  ): Observable<AxiosResponse<any>> {
+    // http://52.79.77.43:8089/api/histories로 http post 요청을 하는 코드를 작성해줘
+    return this.httpService.post(
+      'http://52.79.77.43:8089/api/histories',
+      transactionDto,
+    );
   }
 }
