@@ -57,8 +57,10 @@ export class EventsGateway
     this.logger.log('웹소켓 서버 초기화 ✅');
   }
 
-  handleConnection(@ConnectedSocket() client: Socket) {
+  async handleConnection(@ConnectedSocket() client: Socket) {
     this.logger.log(`Client Connected : ${client.id}`);
+    client.emit('bidList', await this.orderService.getBidList());
+    client.emit('askList', await this.orderService.getAskList());
   }
 
   handleDisconnect(@ConnectedSocket() client: Socket) {
