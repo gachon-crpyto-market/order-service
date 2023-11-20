@@ -4,7 +4,7 @@ import { ORDER_TYPE } from '../../types';
 import { OrderDto } from './dto/order.dto';
 import { TransactionDto } from './dto/transaction.dto';
 import { HttpService } from '@nestjs/axios';
-import { Observable } from 'rxjs';
+import { last, Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
 
 @Injectable()
@@ -17,6 +17,7 @@ export class OrderService {
   async setBidOrder(orderDto: OrderDto): Promise<any> {
     const { userId, timestamp, price, quantity } = orderDto;
     let remainQuantity: number = quantity;
+    let lastPrice: number | null = null;
 
     // 모든 키를 받아와서 매수 주문의 가격보다 높은 가격의 키를 모두 제거
     const keys = await this.getAllKeys(ORDER_TYPE.ASK);
@@ -55,6 +56,7 @@ export class OrderService {
           // 체결된 결과
           const concludedOrder: any = await this.askRedis.json.GET(priceKey);
           this.logger.debug('전부 체결된 주문: ', concludedOrder[0]);
+          lastPrice = Number(priceKey);
 
           const transactionDto: TransactionDto = {
             buyerId: userId,
@@ -89,6 +91,7 @@ export class OrderService {
           // 실제 체결된 결과를 보내주기 위해 quantity값 갱신
           concludedOrder[0].quantity = remainQuantity;
           this.logger.debug('일부 체결된 주문', concludedOrder[0]);
+          lastPrice = Number(priceKey);
 
           const transactionDto: TransactionDto = {
             buyerId: userId,
@@ -112,7 +115,7 @@ export class OrderService {
     this.logger.debug(await this.getAskList());
 
     if (remainQuantity === 0) {
-      return;
+      return lastPrice;
     }
     // 남은 quantity가 있으면 매수 주문을 등록
     const bidInfo = {
@@ -124,13 +127,14 @@ export class OrderService {
     if ((await this.isExist(ORDER_TYPE.BID, price)) === false) {
       await this.bidRedis.json.SET(price.toString(), '$', []);
     }
-
-    return await this.bidRedis.json.ARRAPPEND(price.toString(), '$', bidInfo);
+    await this.bidRedis.json.ARRAPPEND(price.toString(), '$', bidInfo);
+    return lastPrice;
   }
 
   async setAskOrder(orderDto: OrderDto): Promise<any> {
     const { userId, timestamp, price, quantity } = orderDto;
     let remainQuantity: number = quantity;
+    let lastPrice: number | null = null;
 
     // 모든 키를 받아와서 매도 주문의 가격보다 낮은 가격의 키를 모두 제거
     const keys = await this.getAllKeys(ORDER_TYPE.BID);
@@ -167,6 +171,7 @@ export class OrderService {
           // 체결된 결과
           const concludedOrder: any = await this.bidRedis.json.GET(priceKey);
           this.logger.debug('전부 체결된 주문: ', concludedOrder[0]);
+          lastPrice = Number(priceKey);
 
           const transactionDto: TransactionDto = {
             buyerId: concludedOrder[0].userId,
@@ -201,6 +206,7 @@ export class OrderService {
           // 실제 체결된 결과를 보내주기 위해 quantity값 갱신
           concludedOrder[0].quantity = remainQuantity;
           this.logger.debug('일부 체결된 주문: ', concludedOrder[0]);
+          lastPrice = Number(priceKey);
 
           const transactionDto: TransactionDto = {
             buyerId: concludedOrder[0].userId,
@@ -224,7 +230,7 @@ export class OrderService {
     this.logger.debug(await this.getBidList());
 
     if (remainQuantity === 0) {
-      return;
+      return lastPrice;
     }
     // 남은 quantity가 있으면 매수 주문을 등록
     const askInfo = {
@@ -236,8 +242,8 @@ export class OrderService {
     if ((await this.isExist(ORDER_TYPE.ASK, price)) === false) {
       await this.askRedis.json.SET(price.toString(), '$', []);
     }
-
-    return await this.askRedis.json.ARRAPPEND(price.toString(), '$', askInfo);
+    await this.askRedis.json.ARRAPPEND(price.toString(), '$', askInfo);
+    return lastPrice;
   }
 
   async getBidList(): Promise<any> {

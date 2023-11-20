@@ -29,7 +29,8 @@ export class EventsGateway
   async handleBid(@MessageBody() orderDto: OrderDto): Promise<string> {
     this.logger.log('-----매수 요청-----', orderDto);
     try {
-      await this.orderService.setBidOrder(orderDto);
+      const lastPrice: number | null = await this.orderService.setBidOrder(orderDto);
+      this.server.emit('lastPrice', lastPrice);
       this.server.emit('bidList', await this.orderService.getBidList());
       this.server.emit('askList', await this.orderService.getAskList());
       return '매수 요청 성공';
@@ -43,7 +44,8 @@ export class EventsGateway
   async handleAsk(@MessageBody() orderDto: OrderDto): Promise<string> {
     this.logger.log('-----매도 요청-----', orderDto);
     try {
-      await this.orderService.setAskOrder(orderDto);
+      const lastPrice: number | null = await this.orderService.setAskOrder(orderDto);
+      this.server.emit('lastPrice', lastPrice);
       this.server.emit('bidList', await this.orderService.getBidList());
       this.server.emit('askList', await this.orderService.getAskList());
       return '매도 요청 성공';
